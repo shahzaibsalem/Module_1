@@ -1,4 +1,5 @@
 import os
+from prompt_loader import load_prompt_from_yaml
 from typing import List
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,28 +13,25 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 
 
-def load_documents() -> List[str]:
-    """
-    Load documents for demonstration.
-
-    Returns:
-        List of sample documents
-    """
+def load_documents() -> List[dict]:
     results = []
-    # TODO: Implement document loading
-    # HINT: Read the documents from the data directory
-    # HINT: Return a list of documents
-    # HINT: Your implementation depends on the type of documents you are using (.txt, .pdf, etc.)
+    folder_path = os.path.join(os.path.dirname(__file__), '..', 'data')
+    folder_path = os.path.abspath(folder_path)
 
-    # Your implementation here
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".txt"):
+            filepath = os.path.join(folder_path, filename)
+            with open(filepath, 'r', encoding='utf-8') as file:
+                data = file.read()
+                results.append({
+                    "content": data,
+                    "metadata": {"source": filename}
+                })
     return results
 
 
+
 class RAGAssistant:
-    """
-    A simple RAG-based AI assistant using ChromaDB and multiple LLM providers.
-    Supports OpenAI, Groq, and Google Gemini APIs.
-    """
 
     def __init__(self):
         """Initialize the RAG assistant."""
@@ -47,13 +45,8 @@ class RAGAssistant:
 
         # Initialize vector database
         self.vector_db = VectorDB()
-
-        # Create RAG prompt template
-        # TODO: Implement your RAG prompt template
-        # HINT: Use ChatPromptTemplate.from_template() with a template string
-        # HINT: Your template should include placeholders for {context} and {question}
-        # HINT: Design your prompt to effectively use retrieved context to answer questions
-        self.prompt_template = None  # Your implementation here
+        # Load prompt template from YAML configuration
+        self.prompt_template = load_prompt_from_yaml('prompt_config.yaml')
 
         # Create the chain
         self.chain = self.prompt_template | self.llm | StrOutputParser()
@@ -61,10 +54,7 @@ class RAGAssistant:
         print("RAG Assistant initialized successfully")
 
     def _initialize_llm(self):
-        """
-        Initialize the LLM by checking for available API keys.
-        Tries OpenAI, Groq, and Google Gemini in that order.
-        """
+
         # Check for OpenAI API key
         if os.getenv("OPENAI_API_KEY"):
             model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -95,33 +85,28 @@ class RAGAssistant:
             )
 
     def add_documents(self, documents: List) -> None:
-        """
-        Add documents to the knowledge base.
-
-        Args:
-            documents: List of documents
-        """
         self.vector_db.add_documents(documents)
 
     def invoke(self, input: str, n_results: int = 3) -> str:
-        """
-        Query the RAG assistant.
 
-        Args:
-            input: User's input
-            n_results: Number of relevant chunks to retrieve
-
-        Returns:
-            Dictionary containing the answer and retrieved context
-        """
         llm_answer = ""
-        # TODO: Implement the RAG query pipeline
-        # HINT: Use self.vector_db.search() to retrieve relevant context chunks
-        # HINT: Combine the retrieved document chunks into a single context string
-        # HINT: Use self.chain.invoke() with context and question to generate the response
-        # HINT: Return a string answer from the LLM
 
         # Your implementation here
+        search_result = self.vector_db.search(query=input , n_results=n_results)
+        if not search_result or not search_result.get("documents"):
+            return "No relevant documents found."
+        context_chunks = search_result.get("documents")
+        context ='\n\n'.join(context_chunks)
+
+        inputs = {
+            "context": context,
+            "question": input
+        }
+
+        try:
+            llm_answer = self.chain.invoke(inputs)
+        except Exception as e:
+            llm_answer = f"Error generating answer: {e}"    
         return llm_answer
 
 
@@ -146,7 +131,7 @@ def main():
             if question.lower() == "quit":
                 done = True
             else:
-                result = assistant.query(question)
+                result = assistant.invoke(question)
                 print(result)
 
     except Exception as e:
