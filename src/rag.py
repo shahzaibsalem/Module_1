@@ -119,7 +119,7 @@ class RAGAssistant:
         self.vector_db.add_documents(docs)
 
     # ---------------------------------------------------------
-    # OPTIONAL SUMMARY
+    # SUMMARY
     # ---------------------------------------------------------
 
     def _summarize_old_messages(self):
@@ -185,34 +185,3 @@ class RAGAssistant:
         self._summarize_old_messages()
 
         return answer
-
-
-# ---------------------------------------------------------
-# MAIN ENTRYPOINT
-# ---------------------------------------------------------
-
-def main():
-    try:
-        assistant = RAGAssistant()
-
-        print("\nLoading documents...")
-        documents = load_documents()
-        print(f"Loaded {len(documents)} documents.")
-        assistant.add_documents(documents)
-
-        while True:
-            query = input("\nAsk something (or 'summary' / 'quit'): ").strip()
-            if query.lower() == "quit":
-                print("Goodbye!")
-                break
-
-            response = assistant.invoke(query)
-            print("\n" + response)
-
-    except Exception as e:
-        print(f"Error: {e}")
-        print("Ensure your .env file contains OPENAI / GROQ / GOOGLE API key.")
-
-
-if __name__ == "__main__":
-    main()

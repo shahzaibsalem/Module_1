@@ -1,17 +1,11 @@
 import streamlit as st
 import time
-# Assuming 'rag.py' now contains the corrected imports and the RAGAssistant class
 from rag import RAGAssistant, load_documents 
-
-# ---------------------------------------------------------
-# RAG Initialization (Must run only once)
-# ---------------------------------------------------------
 
 @st.cache_resource
 def initialize_rag_assistant():
     """Initializes the RAG Assistant and loads documents into the VectorDB."""
     try:
-        # NOTE: print statements in this function only show up on initial load
         st.info("Initializing RAG Assistant and loading documents (this may take a moment)...")
         docs = load_documents() 
         assistant = RAGAssistant()
@@ -25,9 +19,6 @@ def initialize_rag_assistant():
 # Initialize the assistant and data loading
 rag_assistant = initialize_rag_assistant()
 
-# ---------------------------------------------------------
-# Streamlit Page Config & Dashing CSS
-# ---------------------------------------------------------
 
 st.set_page_config(
     page_title="RAG-GenAI Terminal",
@@ -35,7 +26,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- Dashing Cyberpunk Terminal Style CSS ---
 st.markdown(
     """
     <style>
@@ -143,13 +133,9 @@ st.markdown(
 st.markdown("<h1 style='text-align: center; color: #00FFFF; text-shadow: 0 0 10px #00FFFF;'>RAG Terminal Interface</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>Query your knowledge base. Use 'summary' for chat history.</p>", unsafe_allow_html=True)
 
-# Initialize chat history (must be outside the form)
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# --- Display Conversation ---
-# Use an empty container to display messages, reversing the order so new messages are at the bottom.
-# Streamlit usually handles this well, but we'll iterate through the history directly.
 for chat in st.session_state.chat_history:
     if chat["role"] == "user":
         st.markdown(f'<div class="user-msg">{chat["msg"]}</div>', unsafe_allow_html=True)
@@ -166,7 +152,6 @@ with st.form("chat_form", clear_on_submit=True):
 
 # --- Submission Logic ---
 if submitted and user_input.strip() != "":
-    # 1. Save and display user message immediately
     st.session_state.chat_history.append({"role": "user", "msg": user_input})
     st.rerun() # Use rerun to immediately show the new user message
 
@@ -174,7 +159,6 @@ if submitted and user_input.strip() != "":
 if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
     user_query = st.session_state.chat_history[-1]["msg"]
     
-    # 2. Add placeholder for bot response (for typing effect)
     with st.empty():
         # Display the user message once more to prepare for the bot response immediately after
         st.markdown(f'<div class="user-msg">{user_query}</div>', unsafe_allow_html=True)
@@ -183,14 +167,13 @@ if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] =
 
     # 3. Generate response
     try:
-        # Generate bot response and simulate a delay (for the typing animation effect)
         time.sleep(0.5) 
         bot_response = rag_assistant.invoke(user_query)
 
         # 4. Display the final response
         placeholder.markdown(f'<div class="bot-msg">{bot_response}</div>', unsafe_allow_html=True)
         
-        # 5. Save final bot response
+        # 5. Save final response
         st.session_state.chat_history.append({"role": "bot", "msg": bot_response})
     
     except Exception as e:
